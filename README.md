@@ -36,7 +36,7 @@ Upload or install from Modules directory.
 
 Once installed, on any Page Reference field, you will be able to activate the Page Field contexts (checkbox). Once activated, there is a textarea to enter your parameters. The parameters are 1 per line, and look like this:
 
-[Enable on Template], [Page ID or Name], [template to trigger]
+[Enable on Template], [Page ID], [template to trigger]
 
 So here is an example, and this is setup on a widget_type field, which is a Page Reference field where the user selects the type of widget they are configuring.
 

@@ -116,7 +116,7 @@ class PageFieldContexts extends WireData implements Module {
         $f_name = 'pfc_setup';
         $f->name = $f_name;
         $f->label = $this->_('Contexts Setup');
-        $f->description = $this->_('Each context: [Enable on Template], [Page ID or Name], [template to trigger].');
+        $f->description = $this->_('Each context: [Enable on Template], [Page ID], [template to trigger].');
         $f->value = $inputfield->$f_name;
        // $f->columnWidth = 50;
         $fs->add($f);
