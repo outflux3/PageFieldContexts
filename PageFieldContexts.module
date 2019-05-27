@@ -1,0 +1,129 @@
+<?php
+
+/**
+ * Class MicroContexts
+ */
+
+class PageFieldContexts extends WireData implements Module {
+
+    public static function getModuleInfo() {
+        return array(
+            'title' => 'Page Field Contexts',
+            'author' => 'Macrura',
+            'version' => 001,
+            'summary' => 'Enables template contexts on Page Field values.',
+            'href' => '#',
+            'icon' => 'magic',
+            'singular' => true,
+            'autoload' => 'template=admin',
+        );
+    }
+
+
+    public function init() {
+
+    } //end init()
+
+    /**
+     * Ready
+     */
+    public function ready() {
+        $this->addHookAfter('InputfieldPage::getConfigInputfields', $this, 'addConfigInputfields');
+        $this->addHookAfter('ProcessPageEdit::loadPage', $this, 'hookPageFieldContexts');
+    }
+
+
+    public function hookPageFieldContexts(HookEvent $event) {
+          
+        $page = $event->return;
+
+        $pageFields = $page->getFields();
+        $proceed = false;
+        $controllerField = '';
+        foreach($pageFields as $f) {
+            if($f->type != "FieldtypePage") continue;
+            if($f->type == "FieldtypePage" && $f->enable_pfc) {
+                $proceed = true;
+                $controllerField = $f;
+                break;
+            }
+        }
+
+        if(!$proceed) return;
+
+        $configRaw = $controllerField->pfc_setup;
+        $rows = explode(PHP_EOL, $configRaw);
+        $f_value = $page->get($controllerField->name);
+
+        foreach($rows as $row) {
+            $rowVal = explode(',',$row);
+            foreach($rowVal as $key => $value) {
+                $rowVal[$key] = trim($value);
+            }
+
+            $template = $rowVal[0];
+            $pageID = (int) $rowVal[1];
+            $mc_page = wire('pages')->get($pageID); 
+            $context = $rowVal[2];
+
+            if($page->template->name != $template) continue;
+
+            $proceed = false;
+            if( $f_value instanceof PageArray && $f_value->has($mc_page) ) $proceed = true;
+            if( $f_value instanceof Page && $f_value == $mc_page ) $proceed = true;
+
+            if($proceed) {
+                $mc_template = wire('templates')->find("name=$context")->first();
+                if($mc_template) {
+                    $mc_fieldgroup = $mc_template->fieldgroup;
+                    $page->template->fieldgroup = $mc_fieldgroup;
+                }
+            }
+
+        }
+
+    }
+
+    /**
+       * Add config inputfields to InputfieldPage
+       *
+       * @param HookEvent $event
+       */
+      protected function addConfigInputfields(HookEvent $event) {
+        $inputfield = $event->object;
+        $wrapper = $event->return;
+        $modules = $this->wire('modules');
+
+        /* @var InputfieldFieldset $f */
+        $fs = $modules->InputfieldFieldset;
+        $fs->name = 'pfc_config';
+        $fs->label = $this->_('Page Field Contexts');
+        $fs->icon = 'random';
+        if(!$inputfield->enable_pfc && !$inputfield->pfc_setup) $fs->collapsed = Inputfield::collapsedYes;
+        $wrapper->add($fs);
+
+        /* @var InputfieldCheckbox $f */
+        $f = $modules->InputfieldCheckbox;
+        $f_name = 'enable_pfc';
+        $f->name = $f_name;
+        $f->label = $this->_('Activate Page Field Contexts');
+        $f->checked = $inputfield->$f_name === 1 ? 'checked' : '';
+        //$f->columnWidth = 25;
+        $fs->add($f);
+
+        /* @var InputfieldTextarea $f */
+        $f = $modules->InputfieldTextarea;
+        $f_name = 'pfc_setup';
+        $f->name = $f_name;
+        $f->label = $this->_('Contexts Setup');
+        $f->description = $this->_('Each context: [Enable on Template], [Page ID or Name], [template to trigger].');
+        $f->value = $inputfield->$f_name;
+       // $f->columnWidth = 50;
+        $fs->add($f);
+
+
+      }
+
+
+
+} // end class
